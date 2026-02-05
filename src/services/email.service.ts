@@ -1,0 +1,97 @@
+import nodemailer from 'nodemailer';
+import { ApiError } from '../common/utils/ApiError';
+import { emailTemplates } from '../common/templates/email.templates';
+
+class EmailService {
+  private transporter: nodemailer.Transporter | null = null;
+
+  constructor() {
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        this.transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+        });
+    } else {
+        console.warn('⚠️ SMTP credentials not found. Email service running in MOCK mode. Emails will be logged to console.');
+    }
+  }
+
+  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+    if (!this.transporter) {
+        console.log(`\n📧 [MOCK EMAIL] To: ${to}\n📝 Subject: ${subject}\n📄 Content: ${html.replace(/<[^>]*>?/gm, '').trim()}\n`);
+        return;
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: `"${process.env.APP_NAME || 'EventSphere'}" <${process.env.SMTP_FROM || 'no-reply@eventsphere.com'}>`,
+        to,
+        subject,
+        html,
+      });
+
+      console.log(`Email sent: ${info.messageId}`);
+      if (!process.env.SMTP_HOST || process.env.SMTP_HOST.includes('ethereal')) {
+          console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+      }
+
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new ApiError(500, 'Failed to send email notification');
+    }
+  }
+
+
+  async sendWelcomeEmail(to: string, name: string): Promise<void> {
+    const html = emailTemplates.welcome(name);
+    await this.sendEmail(to, 'Welcome to EventSphere!', html);
+  }
+
+  async sendVerificationEmail(to: string, name: string, token: string): Promise<void> {
+    const html = emailTemplates.verification(name, token);
+    await this.sendEmail(to, 'Verify your EventSphere account', html);
+  }
+
+  async sendEventUpdateEmail(to: string, name: string, eventTitle: string, changes: Record<string, { old: Date | string, new: Date | string }>, eventId: string): Promise<void> {
+    const html = emailTemplates.eventUpdate(name, eventTitle, changes, eventId);
+    await this.sendEmail(to, `Update: ${eventTitle}`, html);
+  }
+
+  async sendUpgradeApprovedEmail(to: string, name: string): Promise<void> {
+    const html = emailTemplates.roleApproved(name);
+    await this.sendEmail(to, 'You are now an Organizer!', html);
+  }
+
+  async sendRsvpConfirmationEmail(to: string, name: string, eventTitle: string, ticketCode?: string, qrCodeData?: string): Promise<void> {
+    const html = emailTemplates.rsvpConfirmation(name, eventTitle, ticketCode, qrCodeData);
+    await this.sendEmail(to, `Ticket: ${eventTitle}`, html);
+  }
+
+  async sendInvitationEmail(to: string, name: string, inviterName: string, eventTitle: string, eventId: string): Promise<void> {
+    const link = `${process.env.CLIENT_URL || 'http://localhost:5173'}/events/${eventId}`;
+    const html = emailTemplates.invitation(name, inviterName, eventTitle, link);
+    await this.sendEmail(to, `Invitation: ${eventTitle}`, html);
+  }
+
+  async sendRecurringEventCreatedEmail(to: string, name: string, eventTitle: string, date: string): Promise<void> {
+    const html = emailTemplates.recurringEventCreated(name, eventTitle, date);
+    await this.sendEmail(to, `New Event: ${eventTitle}`, html);
+  }
+
+  async sendCommunityEventEmail(to: string, name: string, communityName: string, eventTitle: string, eventId: string): Promise<void> {
+    const html = emailTemplates.communityEventNew(name, communityName, eventTitle, eventId);
+    await this.sendEmail(to, `New Event in ${communityName}`, html);
+  }
+
+  async sendCommunityInviteEmail(to: string, communityName: string, inviterName: string): Promise<void> {
+    const html = emailTemplates.communityInvite(to, communityName, inviterName);
+    await this.sendEmail(to, `Invitation: Join ${communityName}`, html);
+  }
+}
+
+export const emailService = new EmailService();
