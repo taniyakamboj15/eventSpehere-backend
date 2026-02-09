@@ -8,7 +8,6 @@ export const uploadEventPhoto = async (req: Request, res: Response, next: NextFu
     try {
         const { id } = req.params;
         const userId = (req as AuthenticatedRequest).user.userId;
-        // multer populates req.file, we can trust it is there if middleware ran, but we check
         const file = req.file; 
 
         if (!file) throw new AppError('No file uploaded', 400);
@@ -17,7 +16,6 @@ export const uploadEventPhoto = async (req: Request, res: Response, next: NextFu
         if (!event) throw new AppError('Event not found', 404);
         if (event.organizer.toString() !== userId) throw new ForbiddenError('Only organizer can upload photos');
 
-        // Cloudinary storage adds these props
         const fileWithUrl = file as Express.Multer.File & { secure_url?: string; url?: string };
         event.photos.push(fileWithUrl.secure_url || fileWithUrl.url || file.path);
         await event.save();

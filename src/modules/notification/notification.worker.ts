@@ -10,8 +10,11 @@ import { Event } from '../event/event.model';
 import { sendEventUpdateEmailSingle } from './notification.queue';
 import { Community } from '../community/community.model';
 
-const notificationHandlers: Record<string, (data: any) => Promise<void>> = {
-    'event-update': async ({ eventId, changes }) => {
+type EventChanges = Record<string, { old: Date | string; new: Date | string }>;
+
+const notificationHandlers: Record<string, (data: unknown) => Promise<void>> = {
+    'event-update': async (data) => {
+        const { eventId, changes } = data as { eventId: string; changes: EventChanges };
         const event = await Event.findById(eventId);
         if (!event) return;
 
@@ -27,11 +30,13 @@ const notificationHandlers: Record<string, (data: any) => Promise<void>> = {
             }));
         }
     },
-    'event-update-single': async ({ email, name, eventTitle, changes, eventId }) => {
+    'event-update-single': async (data) => {
+        const { email, name, eventTitle, changes, eventId } = data as { email: string; name: string; eventTitle: string; changes: EventChanges; eventId: string };
         await emailService.sendEventUpdateEmail(email, name, eventTitle, changes, eventId);
         logger.info(`[Email Sent] Event Update to ${email}`);
     },
-    'rsvp-confirmation': async ({ email, name, eventTitle, ticketCode }) => {
+    'rsvp-confirmation': async (data) => {
+        const { email, name, eventTitle, ticketCode } = data as { email: string; name: string; eventTitle: string; ticketCode: string };
         let qrCodeData: string | undefined;
         if (ticketCode) {
             try {
@@ -43,23 +48,28 @@ const notificationHandlers: Record<string, (data: any) => Promise<void>> = {
         await emailService.sendRsvpConfirmationEmail(email, name, eventTitle, ticketCode, qrCodeData);
         logger.info(`[Email Sent] RSVP Confirmation to ${email} for ${eventTitle}`);
     },
-    'welcome': async ({ email, name }) => {
+    'welcome': async (data) => {
+        const { email, name } = data as { email: string; name: string };
         await emailService.sendWelcomeEmail(email, name);
         logger.info(`[Email Sent] Welcome to ${email}`);
     },
-    'verification': async ({ email, name, token }) => {
+    'verification': async (data) => {
+        const { email, name, token } = data as { email: string; name: string; token: string };
         await emailService.sendVerificationEmail(email, name, token);
         logger.info(`[Email Sent] Verification to ${email}`);
     },
-    'invitation': async ({ email, name, inviterName, eventTitle, eventId }) => {
+    'invitation': async (data) => {
+        const { email, name, inviterName, eventTitle, eventId } = data as { email: string; name: string; inviterName: string; eventTitle: string; eventId: string };
         await emailService.sendInvitationEmail(email, name, inviterName, eventTitle, eventId);
         logger.info(`[Email Sent] Invitation to ${email} for ${eventTitle}`);
     },
-    'recurring-created': async ({ email, name, eventTitle, date }) => {
+    'recurring-created': async (data) => {
+        const { email, name, eventTitle, date } = data as { email: string; name: string; eventTitle: string; date: string };
         await emailService.sendRecurringEventCreatedEmail(email, name, eventTitle, date);
         logger.info(`[Email Sent] Recurring Event Notification to ${email}`);
     },
-    'community-event-new': async ({ communityId, eventId, eventTitle }) => {
+    'community-event-new': async (data) => {
+        const { communityId, eventId, eventTitle } = data as { communityId: string; eventId: string; eventTitle: string };
         try {
             const community = await Community.findById(communityId).populate('members');
             if (community && community.members && community.members.length > 0) {
@@ -75,7 +85,8 @@ const notificationHandlers: Record<string, (data: any) => Promise<void>> = {
             logger.error(`Failed to process community event notification for event ${eventId}`, error);
         }
     },
-    'community-invite': async ({ email, communityName, inviterName }) => {
+    'community-invite': async (data) => {
+        const { email, communityName, inviterName } = data as { email: string; communityName: string; inviterName: string };
         await emailService.sendCommunityInviteEmail(email, communityName, inviterName);
         logger.info(`[Email Sent] Community Invitation to ${email}`);
     }

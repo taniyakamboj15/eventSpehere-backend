@@ -20,7 +20,7 @@ class TemplateService {
         }
     }
 
-    async render(templateName: string, data: any): Promise<string> {
+    async render(templateName: string, data: Record<string, unknown>): Promise<string> {
         if (!this.layout) {
             await this.init();
         }

@@ -1,19 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/ApiError';
 
-export const errorHandler = (err: unknown, req: Request, res: Response, next: NextFunction) => {
-  let error: ApiError;
+interface ErrorConverter {
+  check: (err: unknown) => boolean;
+  convert: (err: unknown) => ApiError;
+}
 
-  if (err instanceof ApiError) {
-    error = err;
-  } else if (err instanceof Error) {
-    const statusCode = ('statusCode' in err && typeof (err as { statusCode: unknown }).statusCode === 'number')
-      ? (err as { statusCode: number }).statusCode
-      : 500;
-    error = new ApiError(statusCode, err.message, [], err.stack);
-  } else {
-       error = new ApiError(500, 'Something went wrong');
+const ERROR_CONVERTERS: ErrorConverter[] = [
+  {
+    check: (err) => err instanceof ApiError,
+    convert: (err) => err as ApiError
+  },
+  {
+    check: (err) => err instanceof Error,
+    convert: (err) => {
+      const error = err as Error;
+      const statusCode = ('statusCode' in error && typeof (error as { statusCode: unknown }).statusCode === 'number')
+        ? (error as { statusCode: number }).statusCode
+        : 500;
+      return new ApiError(statusCode, error.message, [], error.stack);
+    }
   }
+];
+
+export const errorHandler = (err: unknown, req: Request, res: Response, next: NextFunction) => {
+  const converter = ERROR_CONVERTERS.find(c => c.check(err));
+  const error = converter ? converter.convert(err) : new ApiError(500, 'Something went wrong');
 
   const response = {
     success: false,

@@ -1,4 +1,4 @@
-import { Rsvp } from './rsvp.model';
+import { Rsvp, IRsvp } from './rsvp.model';
 import { RsvpStatus } from './rsvp.types';
 import { Event } from '../event/event.model';
 import { AppError, ForbiddenError } from '../../common/errors/app-error';
@@ -114,7 +114,7 @@ export class RsvpService {
         }
 
         let rsvp;
-        const lookupStrategies: Array<[keyof typeof identifiers, () => Promise<any>]> = [
+        const lookupStrategies: Array<[keyof typeof identifiers, () => Promise<IRsvp | null>]> = [
             ['ticketCode', () => Rsvp.findOne({ ticketCode: identifiers.ticketCode })],
             ['userId', () => Rsvp.findOne({ event: eventId, user: identifiers.userId })]
         ];

@@ -3,8 +3,19 @@ import mongoose from 'mongoose';
 import { redisConnection } from '../../config/redis';
 import { logger } from '../../config/logger';
 
+interface HealthStatus {
+    status: 'UP' | 'DOWN' | 'DEGRADED';
+    timestamp: string;
+    uptime: number;
+    environment: string | undefined;
+    checks: {
+        database: 'UP' | 'DOWN';
+        redis: 'UP' | 'DOWN';
+    };
+}
+
 export const getHealth = async (req: Request, res: Response) => {
-    const healthstatus: any = {
+    const healthstatus: HealthStatus = {
         status: 'UP',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
