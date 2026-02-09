@@ -1,15 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { rsvpService } from './rsvp.service';
-import { validationResult } from 'express-validator';
 import { ApiError } from '../../common/utils/ApiError';
 import { ApiResponse } from '../../common/utils/ApiResponse';
 import { asyncHandler } from '../../common/utils/asyncHandler';
 import { AuthenticatedRequest } from '../../common/middlewares/auth.middleware';
 
 export const rsvpEvent = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) throw new ApiError(400, errors.array()[0].msg);
-
+    
     const { id } = req.params;
     const userId = (req as AuthenticatedRequest).user.userId;
     const { status } = req.body;

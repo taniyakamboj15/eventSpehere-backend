@@ -5,6 +5,7 @@ import { AppError } from '../../common/errors/app-error';
 import { notificationService } from '../notification/in-app/notification.service';
 import { NotificationType } from '../notification/in-app/notification.model';
 import { User } from '../user/user.model';
+import { sendCommunityInviteEmail } from '../notification/notification.queue';
 
 export class CommunityService {
     async create(data: Partial<ICommunity>, creatorId: string) {
@@ -99,7 +100,6 @@ export class CommunityService {
 
         // 1. Send Email (Generic or specific template)
         try {
-            const { sendCommunityInviteEmail } = await import('../notification/notification.queue');
             const inviter = await User.findById(invitedByUserId);
             await sendCommunityInviteEmail(email, community.name, inviter?.name || 'An Admin');
         } catch (e) {
@@ -117,6 +117,14 @@ export class CommunityService {
         );
 
         return { success: true, message: `Invitation sent to ${email}` };
+    }
+
+    async getById(id: string) {
+        const community = await Community.findById(id);
+        if (!community) {
+            throw new AppError('Community not found', 404);
+        }
+        return community;
     }
 
     async getAll(longitude?: number, latitude?: number, maxDistanceInMeters = 5000) {

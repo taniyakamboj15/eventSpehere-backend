@@ -1,0 +1,23 @@
+<h2 style="color: #1F2937; margin-top: 0;">Event Update: {{eventTitle}}</h2>
+<p>Hi {{name}},</p>
+<p>There has been an important update to an event you're attending.</p>
+
+<div style="background-color: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    {{#if changes.time}}
+        <p><strong>⏰ Time Changed:</strong><br><span style="text-decoration: line-through; color: #999;">{{changes.time.old}}</span> &rarr; <span style="color: #d97706; font-weight: bold;">{{changes.time.new}}</span></p>
+    {{/if}}
+    
+    {{#if changes.location}}
+        <p><strong>📍 Location Changed:</strong><br><span style="text-decoration: line-through; color: #999;">{{changes.location.old}}</span> &rarr; <span style="color: #d97706; font-weight: bold;">{{changes.location.new}}</span></p>
+    {{/if}}
+
+    {{#unless changes.time}}
+        {{#unless changes.location}}
+            <p>Details of the event have been updated.</p>
+        {{/unless}}
+    {{/unless}}
+</div>
+
+<div style="text-align: center;">
+    <a href="{{clientUrl}}/events/{{eventId}}" class="btn">View Event Details</a>
+</div>

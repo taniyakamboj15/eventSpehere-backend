@@ -16,5 +16,6 @@ const communitySchema = new Schema<ICommunity>({
 }, { timestamps: true });
 
 communitySchema.index({ location: '2dsphere' });
+communitySchema.index({ name: 1 });
 
 export const Community = mongoose.model<ICommunity>('Community', communitySchema);

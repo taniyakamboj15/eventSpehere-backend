@@ -2,6 +2,8 @@ import { Invitation, InvitationStatus } from './invitation.model';
 import { User } from '../user/user.model';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../../config/logger';
+import { sendInvitationEmail } from '../notification/notification.queue';
+import { Event } from '../event/event.model';
 
 export class InvitationService {
     async inviteUsers(eventId: string, emails: string[], invitedByUserId: string) {
@@ -27,18 +29,13 @@ export class InvitationService {
                 });
                 
                 try {
-                    const { sendInvitationEmail } = await import('../notification/notification.queue');
-                
-                    const { Event } = await import('../event/event.model');
-                    const { User } = await import('../user/user.model');
-                    
                     const eventDoc = await Event.findById(eventId).select('title');
                     const inviterDoc = await User.findById(invitedByUserId).select('name');
                     
                     if (eventDoc && inviterDoc) {
                         await sendInvitationEmail(
                             normalizedEmail,
-                            'Guest', // We don't know the name of the invited person usually if they are not signed up, or we could check existingUsers map
+                            'Guest', 
                             inviterDoc.name,
                             eventDoc.title,
                             eventId
@@ -52,7 +49,6 @@ export class InvitationService {
     }
 
     async getUserInvitations(userId: string) {
-        // Find invitations linked to userId OR email (if we had email in session context, but usually userId is enough if we link it on signup/signin or invite creation)
         return Invitation.find({ userId }).populate('event').populate('invitedBy', 'name');
     }
 

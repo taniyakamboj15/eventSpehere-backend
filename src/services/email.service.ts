@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { ApiError } from '../common/utils/ApiError';
-import { emailTemplates } from '../common/templates/email.templates';
+import { templateService } from './template.service';
 
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
@@ -48,48 +48,56 @@ class EmailService {
 
 
   async sendWelcomeEmail(to: string, name: string): Promise<void> {
-    const html = emailTemplates.welcome(name);
+    const html = await templateService.render('welcome', { name });
     await this.sendEmail(to, 'Welcome to EventSphere!', html);
   }
 
   async sendVerificationEmail(to: string, name: string, token: string): Promise<void> {
-    const html = emailTemplates.verification(name, token);
+    const html = await templateService.render('verification', { name, code: token });
     await this.sendEmail(to, 'Verify your EventSphere account', html);
   }
 
   async sendEventUpdateEmail(to: string, name: string, eventTitle: string, changes: Record<string, { old: Date | string, new: Date | string }>, eventId: string): Promise<void> {
-    const html = emailTemplates.eventUpdate(name, eventTitle, changes, eventId);
+    const formattedChanges = { ...changes };
+    if (changes.time) {
+        formattedChanges.time = {
+            old: new Date(changes.time.old).toLocaleString(),
+            new: new Date(changes.time.new).toLocaleString()
+        };
+    }
+
+    const html = await templateService.render('event-update', { name, eventTitle, changes: formattedChanges, eventId });
     await this.sendEmail(to, `Update: ${eventTitle}`, html);
   }
 
   async sendUpgradeApprovedEmail(to: string, name: string): Promise<void> {
-    const html = emailTemplates.roleApproved(name);
+    const html = await templateService.render('role-approved', { name });
     await this.sendEmail(to, 'You are now an Organizer!', html);
   }
 
   async sendRsvpConfirmationEmail(to: string, name: string, eventTitle: string, ticketCode?: string, qrCodeData?: string): Promise<void> {
-    const html = emailTemplates.rsvpConfirmation(name, eventTitle, ticketCode, qrCodeData);
+    const html = await templateService.render('rsvp-confirmation', { name, eventTitle, ticketCode, qrCodeData });
     await this.sendEmail(to, `Ticket: ${eventTitle}`, html);
   }
 
   async sendInvitationEmail(to: string, name: string, inviterName: string, eventTitle: string, eventId: string): Promise<void> {
     const link = `${process.env.CLIENT_URL || 'http://localhost:5173'}/events/${eventId}`;
-    const html = emailTemplates.invitation(name, inviterName, eventTitle, link);
+    const html = await templateService.render('invitation', { name, inviterName, eventTitle, link });
     await this.sendEmail(to, `Invitation: ${eventTitle}`, html);
   }
 
   async sendRecurringEventCreatedEmail(to: string, name: string, eventTitle: string, date: string): Promise<void> {
-    const html = emailTemplates.recurringEventCreated(name, eventTitle, date);
+    const html = await templateService.render('recurring-event-created', { name, eventTitle, date });
     await this.sendEmail(to, `New Event: ${eventTitle}`, html);
   }
 
   async sendCommunityEventEmail(to: string, name: string, communityName: string, eventTitle: string, eventId: string): Promise<void> {
-    const html = emailTemplates.communityEventNew(name, communityName, eventTitle, eventId);
+    const html = await templateService.render('community-event-new', { name, communityName, eventTitle, eventId });
     await this.sendEmail(to, `New Event in ${communityName}`, html);
   }
 
   async sendCommunityInviteEmail(to: string, communityName: string, inviterName: string): Promise<void> {
-    const html = emailTemplates.communityInvite(to, communityName, inviterName);
+    const html = await templateService.render('community-invite', { inviterName, communityName });
     await this.sendEmail(to, `Invitation: Join ${communityName}`, html);
   }
 }

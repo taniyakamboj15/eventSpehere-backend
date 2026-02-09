@@ -2,6 +2,12 @@ import { Rsvp } from './rsvp.model';
 import { RsvpStatus } from './rsvp.types';
 import { Event } from '../event/event.model';
 import { AppError, ForbiddenError } from '../../common/errors/app-error';
+import { communityService } from '../community/community.service';
+import { Invitation } from '../invitation/invitation.model';
+import { sendRsvpConfirmation } from '../notification/notification.queue';
+import { User } from '../user/user.model';
+import { Community } from '../community/community.model';
+import { v4 as uuidv4 } from 'uuid';
 
 export class RsvpService {
     async createOrUpdate(eventId: string, userId: string, status: RsvpStatus) {
@@ -16,18 +22,24 @@ export class RsvpService {
         }
 
         // Validate Access
-        if (event.visibility === 'COMMUNITY_ONLY') {
-            const { communityService } = await import('../community/community.service');
-            if (!event.community) throw new AppError('Community event missing community ID', 500);
-            
-            const isMember = await communityService.isMember(event.community.toString(), userId);
-            if (!isMember) throw new ForbiddenError('You must be a member of the community to join this event');
-        } else if (event.visibility === 'PRIVATE_INVITE') {
-            if (event.organizer.toString() !== userId) {
-                 const { Invitation } = await import('../invitation/invitation.model');
-                 const invitation = await Invitation.findOne({ event: eventId, userId });
-                 if (!invitation) throw new ForbiddenError('This is a private event. You must be invited to join.');
-            }
+        const visibilityValidators: Record<string, () => Promise<void>> = {
+            'COMMUNITY_ONLY': async () => {
+                if (!event.community) throw new AppError('Community event missing community ID', 500);
+                const isMember = await communityService.isMember(event.community.toString(), userId);
+                if (!isMember) throw new ForbiddenError('You must be a member of the community to join this event');
+            },
+            'PRIVATE_INVITE': async () => {
+                if (event.organizer.toString() !== userId) {
+                    const invitation = await Invitation.findOne({ event: eventId, userId });
+                    if (!invitation) throw new ForbiddenError('This is a private event. You must be invited to join.');
+                }
+            },
+            'PUBLIC': async () => {} // No validation needed for public events
+        };
+
+        const validator = visibilityValidators[event.visibility];
+        if (validator) {
+            await validator();
         }
 
         if (status === RsvpStatus.GOING) {
@@ -56,15 +68,12 @@ export class RsvpService {
             rsvp = existingRsvp;
         } else {
             // Generate simple unique ticket code
-            const { v4: uuidv4 } = require('uuid');
             rsvp = await Rsvp.create({ event: eventId, user: userId, status, ticketCode: uuidv4() });
         }
 
         // Send Confirmation Email if GOING
         if (status === RsvpStatus.GOING && (oldStatus !== RsvpStatus.GOING)) {
             try {
-                const { sendRsvpConfirmation } = await import('../notification/notification.queue');
-                const { User } = await import('../user/user.model');
                 const userDoc = await User.findById(userId);
                 
                 if (userDoc) {
@@ -94,7 +103,6 @@ export class RsvpService {
         
         let hasPermission = event.organizer.toString() === organizerId;
         if (!hasPermission && event.community) {
-             const { Community } = await import('../community/community.model');
              const comm = await Community.findById(event.community);
              if (comm && comm.admins.map(String).includes(organizerId)) {
                  hasPermission = true;
@@ -106,10 +114,16 @@ export class RsvpService {
         }
 
         let rsvp;
-        if (identifiers.ticketCode) {
-            rsvp = await Rsvp.findOne({ ticketCode: identifiers.ticketCode });
-        } else if (identifiers.userId) {
-            rsvp = await Rsvp.findOne({ event: eventId, user: identifiers.userId });
+        const lookupStrategies: Array<[keyof typeof identifiers, () => Promise<any>]> = [
+            ['ticketCode', () => Rsvp.findOne({ ticketCode: identifiers.ticketCode })],
+            ['userId', () => Rsvp.findOne({ event: eventId, user: identifiers.userId })]
+        ];
+
+        for (const [key, strategy] of lookupStrategies) {
+            if (identifiers[key]) {
+                rsvp = await strategy();
+                if (rsvp) break;
+            }
         }
 
         if (!rsvp) {

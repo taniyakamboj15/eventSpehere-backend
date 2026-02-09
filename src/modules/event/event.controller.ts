@@ -4,15 +4,16 @@ import { asyncHandler } from '../../common/utils/asyncHandler';
 import { ApiResponse } from '../../common/utils/ApiResponse';
 import { generateGoogleCalendarLink, generateICS } from '../../common/utils/calendar.utils';
 import { ApiError } from '../../common/utils/ApiError';
-import { validationResult } from 'express-validator';
-import { ValidationError } from '../../common/errors/app-error';
+
 import { AuthenticatedRequest } from '../../common/middlewares/auth.middleware';
 import { IEvent } from './event.types';
+import { Rsvp } from '../rsvp/rsvp.model';
+import { invitationService } from '../invitation/invitation.service';
+import { rsvpService } from '../rsvp/rsvp.service';
 
 export const createEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) throw new ValidationError(errors.array()[0].msg);
+
         
         const { title, description, category, visibility, startDateTime, endDateTime, address, latitude, longitude, capacity, communityId, recurringRule, photos, inviteEmails } = req.body;
         const userId = (req as AuthenticatedRequest).user.userId;
@@ -40,7 +41,6 @@ export const getEvents = asyncHandler(async (req: Request, res: Response) => {
     let eventsWithRsvp: (Partial<IEvent> & { userRsvpStatus?: string | null })[] = events.map(e => e.toObject ? e.toObject() : e);
     
     if (userId) {
-        const { Rsvp } = await import('../rsvp/rsvp.model');
         
         const userRsvps = await Rsvp.find({ user: userId, event: { $in: events.map((e) => e._id) } });
         const rsvpMap = new Map(userRsvps.map(r => [r.event.toString(), r.status]));
@@ -87,7 +87,6 @@ export const updateEvent = asyncHandler(async (req: Request, res: Response) => {
     const event = await eventService.update(req.params.id, userId, updateDataRaw);
     
     if (inviteEmails && inviteEmails.length > 0) {
-         const { invitationService } = await import('../invitation/invitation.service');
          await invitationService.inviteUsers(event._id.toString(), inviteEmails, userId);
     }
 
@@ -104,8 +103,6 @@ export const checkInUser = asyncHandler(async (req: Request, res: Response) => {
     const { ticketCode } = req.body;
     const organizerId = (req as AuthenticatedRequest).user.userId;
     
-    const { rsvpService } = await import('../rsvp/rsvp.service');
-    
     const result = await rsvpService.checkIn(id, { userId, ticketCode }, organizerId);
     
     res.status(200).json(new ApiResponse(200, result, 'User checked in successfully'));
@@ -117,8 +114,6 @@ export const scanTicket = asyncHandler(async (req: Request, res: Response) => {
     const organizerId = (req as AuthenticatedRequest).user.userId;
 
     if (!ticketCode) throw new ApiError(400, 'Ticket code is required');
-
-    const { rsvpService } = await import('../rsvp/rsvp.service');
 
     const result = await rsvpService.checkIn(id, { ticketCode }, organizerId);
 

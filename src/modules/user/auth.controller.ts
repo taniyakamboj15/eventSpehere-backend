@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
-import { validationResult } from 'express-validator';
+
 import { ApiError } from '../../common/utils/ApiError';
 import { ApiResponse } from '../../common/utils/ApiResponse';
 import { asyncHandler } from '../../common/utils/asyncHandler';
@@ -17,11 +17,6 @@ const COOKIE_OPTIONS = {
 import { IUser } from './user.types';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        throw new ApiError(400, 'Validation Error', errors.array());
-    }
-
     const { name, email, password, role } = req.body;
     // Construct Partial<IUser> explicitly or trust service to handle it
     await authService.register({ name, email, passwordHash: password, role } as Partial<IUser>);
@@ -32,11 +27,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-         throw new ApiError(400, 'Validation Error', errors.array());
-    }
-
     const { email, password } = req.body;
     const { user, tokens } = await authService.login(email, password);
 

@@ -13,6 +13,7 @@ const invitationSchema = new Schema<IInvitation>({
 }, { timestamps: true });
 
 invitationSchema.index({ event: 1, email: 1 }, { unique: true });
+invitationSchema.index({ event: 1, userId: 1 });
 invitationSchema.index({ email: 1 });
 invitationSchema.index({ userId: 1 });
 

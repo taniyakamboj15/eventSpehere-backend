@@ -1,14 +1,16 @@
+import { Router } from 'express';
 import { createComment, getComments, deleteComment } from '../modules/comment/comment.controller';
 import { authenticate } from '../common/middlewares/auth.middleware';
-import { body } from 'express-validator';
-import { Router } from 'express';
+import { createCommentValidation } from '../modules/comment/comment.validation';
+import { validate } from '../common/middlewares/validate.middleware';
 
 
 const router = Router();
 
 router.post('/:id/comments', 
     authenticate, 
-    [body('message').trim().notEmpty().withMessage('Message is required')],
+    createCommentValidation,
+    validate,
     createComment
 );
 

@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import { Event, RecurringRule } from '../modules/event/event.model';
 import { IEvent } from '../modules/event/event.types';
 import { logger } from '../config/logger';
+import { sendRecurringEventCreatedEmail } from '../modules/notification/notification.queue';
+import { User } from '../modules/user/user.model';
 
 export const startRecurringEventsJob = () => {
     // Run every day at midnight
@@ -12,10 +14,14 @@ export const startRecurringEventsJob = () => {
             
             for (const event of events) {
                 const nextDate = new Date(event.startDateTime);
-                if (event.recurringRule === RecurringRule.WEEKLY) {
-                    nextDate.setDate(nextDate.getDate() + 7);
-                } else if (event.recurringRule === RecurringRule.MONTHLY) {
-                    nextDate.setMonth(nextDate.getMonth() + 1);
+                const ruleCalculations: Record<string, (date: Date) => void> = {
+                    [RecurringRule.WEEKLY]: (date) => date.setDate(date.getDate() + 7),
+                    [RecurringRule.MONTHLY]: (date) => date.setMonth(date.getMonth() + 1)
+                };
+
+                const calculate = ruleCalculations[event.recurringRule];
+                if (calculate) {
+                    calculate(nextDate);
                 }
                 
              
@@ -29,8 +35,8 @@ export const startRecurringEventsJob = () => {
                     const duration = event.endDateTime.getTime() - event.startDateTime.getTime();
                     const nextEndDate = new Date(nextDate.getTime() + duration);
                     
-                    const eventObject = event.toObject<IEvent>();
-                    const { _id, createdAt, updatedAt, ...eventData } = eventObject as any; // Temporary destructuring workaround or use strict Omit
+                    const eventObject = event.toObject();
+                    const { _id, createdAt, updatedAt, ...eventData } = eventObject as unknown as { _id: string; createdAt: Date; updatedAt: Date } & Omit<IEvent, '_id' | 'createdAt' | 'updatedAt'>;
                     
                     const newEventPayload: Partial<IEvent> = {
                         ...eventData,
@@ -45,9 +51,7 @@ export const startRecurringEventsJob = () => {
 
                      // Notify Organizer
                      try {
-                        const { sendRecurringEventCreatedEmail } = await import('../modules/notification/notification.queue');
-                        const { User } = await import('../modules/user/user.model');
-                        const organizer = await User.findById(event.organizer);
+                         const organizer = await User.findById(event.organizer);
                         
                         if (organizer) {
                             await sendRecurringEventCreatedEmail(

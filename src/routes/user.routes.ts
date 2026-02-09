@@ -10,20 +10,20 @@ router.post('/upgrade-request', authenticate, requestUpgrade);
 
 // Admin routes
 router.get('/admin/upgrade-requests', 
-    authenticate, 
-    authorize([UserRole.ADMIN]), 
+    authenticate,
+    authorize([UserRole.ADMIN]),
     getPendingRequests
 );
 
 router.post('/admin/upgrade-requests/:userId/approve', 
-    authenticate, 
-    authorize([UserRole.ADMIN]), 
+    authenticate,
+    authorize([UserRole.ADMIN]),
     approveUpgrade
 );
 
 router.post('/admin/upgrade-requests/:userId/reject', 
-    authenticate, 
-    authorize([UserRole.ADMIN]), 
+    authenticate,
+    authorize([UserRole.ADMIN]),
     rejectUpgrade
 );
 

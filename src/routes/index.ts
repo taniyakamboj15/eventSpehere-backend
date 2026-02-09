@@ -11,7 +11,7 @@ import notificationRoutes from './notification.routes';
 const router = Router();
 
 router.use('/auth', authRoutes);
-router.use('/users', userRoutes); // Mount user routes
+router.use('/users', userRoutes);
 router.use('/communities', communityRoutes);
 router.use('/events', rsvpRoutes);
 router.use('/events', commentRoutes);

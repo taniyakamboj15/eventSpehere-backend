@@ -1,5 +1,6 @@
 import { Comment } from './comment.model';
 import { IComment } from './comment.types';
+import { Event } from '../event/event.model';
 
 export class CommentService {
     async create(data: Partial<IComment>) {
@@ -11,7 +12,6 @@ export class CommentService {
         const comment = await Comment.findById(commentId);
         if (!comment) return null; // Or throw error
 
-        const { Event } = await import('../event/event.model');
         const event = await Event.findById(comment.event);
 
         const isAuthor = comment.user.toString() === userId;

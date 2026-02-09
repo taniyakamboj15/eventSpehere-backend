@@ -12,5 +12,6 @@ const rsvpSchema = new Schema<IRsvp>({
 }, { timestamps: true });
 
 rsvpSchema.index({ user: 1, event: 1 }, { unique: true });
+rsvpSchema.index({ event: 1, status: 1 });
 
 export const Rsvp = mongoose.model<IRsvp>('Rsvp', rsvpSchema);

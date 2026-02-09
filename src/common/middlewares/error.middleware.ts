@@ -7,12 +7,12 @@ export const errorHandler = (err: unknown, req: Request, res: Response, next: Ne
   if (err instanceof ApiError) {
     error = err;
   } else if (err instanceof Error) {
-
-    const statusCode = (err as any).statusCode || 500;
+    const statusCode = ('statusCode' in err && typeof (err as { statusCode: unknown }).statusCode === 'number')
+      ? (err as { statusCode: number }).statusCode
+      : 500;
     error = new ApiError(statusCode, err.message, [], err.stack);
   } else {
-   
-    error = new ApiError(500, 'Something went wrong');
+       error = new ApiError(500, 'Something went wrong');
   }
 
   const response = {

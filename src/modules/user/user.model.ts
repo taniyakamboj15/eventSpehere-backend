@@ -14,10 +14,12 @@ const userSchema = new Schema<IUser>(
     verificationTokenExpiry: { type: Date },
     refreshTokens: { type: [String], default: [] },
     
-    upgradeStatus: { type: String, enum: UpgradeStatus, default: UpgradeStatus.NONE },
+    upgradeStatus: { type: String, enum: UpgradeStatus, default: UpgradeStatus.NONE, index: true },
     upgradeRequestDate: { type: Date },
   },
   { timestamps: true }
 );
+
+userSchema.index({ role: 1 });
 
 export const User = mongoose.model<IUser>('User', userSchema);

@@ -7,22 +7,15 @@ import { IUser } from '../user/user.types';
 
 import { emailService } from '../../services/email.service';
 import { Event } from '../event/event.model';
+import { sendEventUpdateEmailSingle } from './notification.queue';
+import { Community } from '../community/community.model';
 
-export const notificationWorker = new Worker('email-notifications', async job => {
-    if (job.name === 'event-update') {
-        const { eventId, changes } = job.data;
-        
-    
+const notificationHandlers: Record<string, (data: any) => Promise<void>> = {
+    'event-update': async ({ eventId, changes }) => {
         const event = await Event.findById(eventId);
         if (!event) return;
 
         const attendees = await rsvpService.getAttendees(eventId);
-        
-        logger.info(`[Event Update] Fanning out ${attendees.length} emails for event ${eventId}`);
-        
-
-        const { sendEventUpdateEmailSingle } = await import('./notification.queue');
-        
         const batchSize = 50;
         for (let i = 0; i < attendees.length; i += batchSize) {
             const batch = attendees.slice(i, i + batchSize);
@@ -33,13 +26,12 @@ export const notificationWorker = new Worker('email-notifications', async job =>
                 }
             }));
         }
-    } else if (job.name === 'event-update-single') {
-        const { email, name, eventTitle, changes, eventId } = job.data;
+    },
+    'event-update-single': async ({ email, name, eventTitle, changes, eventId }) => {
         await emailService.sendEventUpdateEmail(email, name, eventTitle, changes, eventId);
         logger.info(`[Email Sent] Event Update to ${email}`);
-    } else if (job.name === 'rsvp-confirmation') {
-        const { email, name, eventTitle, ticketCode } = job.data;
-        
+    },
+    'rsvp-confirmation': async ({ email, name, eventTitle, ticketCode }) => {
         let qrCodeData: string | undefined;
         if (ticketCode) {
             try {
@@ -48,48 +40,53 @@ export const notificationWorker = new Worker('email-notifications', async job =>
                 logger.error(`Failed to generate QR code for ${ticketCode}`, err);
             }
         }
-
         await emailService.sendRsvpConfirmationEmail(email, name, eventTitle, ticketCode, qrCodeData);
         logger.info(`[Email Sent] RSVP Confirmation to ${email} for ${eventTitle}`);
-    } else if (job.name === 'welcome') {
-        const { email, name } = job.data;
+    },
+    'welcome': async ({ email, name }) => {
         await emailService.sendWelcomeEmail(email, name);
         logger.info(`[Email Sent] Welcome to ${email}`);
-    } else if (job.name === 'verification') {
-        const { email, name, token } = job.data;
+    },
+    'verification': async ({ email, name, token }) => {
         await emailService.sendVerificationEmail(email, name, token);
         logger.info(`[Email Sent] Verification to ${email}`);
-    } else if (job.name === 'invitation') {
-        const { email, name, inviterName, eventTitle, eventId } = job.data;
+    },
+    'invitation': async ({ email, name, inviterName, eventTitle, eventId }) => {
         await emailService.sendInvitationEmail(email, name, inviterName, eventTitle, eventId);
         logger.info(`[Email Sent] Invitation to ${email} for ${eventTitle}`);
-    } else if (job.name === 'recurring-created') {
-        const { email, name, eventTitle, date } = job.data;
+    },
+    'recurring-created': async ({ email, name, eventTitle, date }) => {
         await emailService.sendRecurringEventCreatedEmail(email, name, eventTitle, date);
         logger.info(`[Email Sent] Recurring Event Notification to ${email}`);
-    } else if (job.name === 'community-event-new') {
-        const { communityId, eventId, eventTitle } = job.data;
-        
+    },
+    'community-event-new': async ({ communityId, eventId, eventTitle }) => {
         try {
-            const { Community } = await import('../community/community.model');
             const community = await Community.findById(communityId).populate('members');
-            
             if (community && community.members && community.members.length > 0) {
-                 for (const member of community.members) {
-                     const user = member as unknown as IUser; 
-                     if (user.email && user.name) {
-                         await emailService.sendCommunityEventEmail(user.email, user.name, community.name, eventTitle, eventId);
-                         logger.info(`[Email Sent] Community Event Notification to ${user.email}`); 
-                     }
-                 }
+                for (const member of community.members) {
+                    const user = member as unknown as IUser;
+                    if (user.email && user.name) {
+                        await emailService.sendCommunityEventEmail(user.email, user.name, community.name, eventTitle, eventId);
+                        logger.info(`[Email Sent] Community Event Notification to ${user.email}`);
+                    }
+                }
             }
         } catch (error) {
             logger.error(`Failed to process community event notification for event ${eventId}`, error);
         }
-    } else if (job.name === 'community-invite') {
-        const { email, communityName, inviterName } = job.data;
+    },
+    'community-invite': async ({ email, communityName, inviterName }) => {
         await emailService.sendCommunityInviteEmail(email, communityName, inviterName);
         logger.info(`[Email Sent] Community Invitation to ${email}`);
+    }
+};
+
+export const notificationWorker = new Worker('email-notifications', async job => {
+    const handler = notificationHandlers[job.name];
+    if (handler) {
+        await handler(job.data);
+    } else {
+        logger.warn(`No handler found for job: ${job.name}`);
     }
 }, { connection: redisConnection });
 

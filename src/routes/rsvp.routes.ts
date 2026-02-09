@@ -1,19 +1,17 @@
 import { Router } from 'express';
 import { rsvpEvent, getAttendees, checkInUser, getUserRsvps } from '../modules/rsvp/rsvp.controller';
 import { authenticate, authorize } from '../common/middlewares/auth.middleware';
-import { body } from 'express-validator';
-import { RsvpStatus } from '../modules/rsvp/rsvp.types';
+import { rsvpValidation } from '../modules/rsvp/rsvp.validation';
+import { validate } from '../common/middlewares/validate.middleware';
 import { UserRole } from '../modules/user/user.types';
 
 const router = Router();
 
-// Routes relative to /api/events implied by mounting strategy or must be explicit?
-// Strategy: Mount this router at /api/events in index.ts
-// So paths here are /:id/rsvp
 
 router.post('/:id/rsvp', 
     authenticate, 
-    [body('status').isIn(Object.values(RsvpStatus)).withMessage('Invalid status')],
+    rsvpValidation,
+    validate,
     rsvpEvent
 );
 

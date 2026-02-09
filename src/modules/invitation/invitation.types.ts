@@ -12,7 +12,7 @@ export interface IInvitation extends Document {
     invitedBy: Types.ObjectId;
     status: InvitationStatus;
     token: string;
-    userId?: Types.ObjectId; // Optional, linked if user exists
+    userId?: Types.ObjectId; 
     createdAt: Date;
     updatedAt: Date;
 }

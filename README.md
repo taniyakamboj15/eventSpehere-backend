@@ -185,6 +185,12 @@ src/
 - **Rate Limiting**: 100 requests per 15 minutes per IP.
 - **Type Safety**: Full TypeScript coverage with shared interfaces in `*.types.ts`.
 
+## 📝 Recent Updates
+
+- **Logic Refactoring**: Transitioned high-complexity modules (e.g., `notification.worker.ts`) from brittle `switch/if-else` blocks to extensible lookup-based handler patterns.
+- **Async Reliability**: Improved notification worker stability with better error handling and structured logging.
+- **API Performance**: Optimized database queries for GeoJSON discovery and capacity management.
+
 ## 🤝 Contributing
 
 1. Fork the repository

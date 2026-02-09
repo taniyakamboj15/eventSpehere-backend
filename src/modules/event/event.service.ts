@@ -2,6 +2,12 @@ import { Event } from './event.model';
 import { IEvent, EventVisibility, IEventFilters } from './event.types';
 import { AppError, ForbiddenError } from '../../common/errors/app-error';
 import { FilterQuery } from 'mongoose';
+import { invitationService } from '../invitation/invitation.service';
+import { Community } from '../community/community.model';
+import { Invitation } from '../invitation/invitation.model';
+import { User } from '../user/user.model';
+import { Rsvp } from '../rsvp/rsvp.model';
+import { sendNewCommunityEventEmail, sendEventUpdateEmail } from '../notification/notification.queue';
 
 export class EventService {
     async create(data: Partial<IEvent>, userId: string, inviteEmails?: string[]) {
@@ -11,14 +17,12 @@ export class EventService {
         });
 
         if (inviteEmails && inviteEmails.length > 0) {
-            const { invitationService } = await import('../invitation/invitation.service');
             await invitationService.inviteUsers(event._id.toString(), inviteEmails, userId);
         }
 
         // Send Community Notification
         if (event.community) {
              try {
-                 const { sendNewCommunityEventEmail } = await import('../notification/notification.queue');
                  await sendNewCommunityEventEmail(event.community.toString(), event._id.toString(), event.title);
              } catch (e) {
                  console.error('Failed to queue community event email', e);
@@ -66,10 +70,7 @@ export class EventService {
         const visibilityConditions: FilterQuery<IEvent>[] = [{ visibility: EventVisibility.PUBLIC }];
 
         if (userId) {
-            // Lazy load dependencies
-            const { Community } = await import('../community/community.model');
-            const { Invitation } = await import('../invitation/invitation.model');
-            const { User } = await import('../user/user.model');
+            // Lazy load dependencies removed (moved to top)
 
             const userCommunities = await Community.find({ members: userId }).select('_id');
             const communityIds = userCommunities.map(c => c._id);
@@ -104,7 +105,6 @@ export class EventService {
         let organizerQuery: FilterQuery<IEvent> = {};
         if (filters.organizer) {
             if (userId && filters.organizer === userId) {
-                 const { Community } = await import('../community/community.model');
                  const adminCommunities = await Community.find({ admins: userId }).select('_id');
                  const adminCommunityIds = adminCommunities.map(c => c._id);
                  
@@ -154,7 +154,6 @@ export class EventService {
 
     // Adding this helper method to keep service logic clean
     async getUserEventRsvp(eventId: string, userId: string) {
-        const { Rsvp } = await import('../rsvp/rsvp.model');
         return Rsvp.findOne({ event: eventId, user: userId });
     }
 
@@ -164,7 +163,6 @@ export class EventService {
         
         let hasPermission = event.organizer.toString() === userId;
         if (!hasPermission && event.community) {
-             const { Community } = await import('../community/community.model');
              const comm = await Community.findById(event.community);
              if (comm && comm.admins.map(a => a.toString()).includes(userId)) hasPermission = true;
         }
@@ -186,8 +184,6 @@ export class EventService {
 
             if (originalStart !== newStart || originalLocation !== newLocation) {
                 try {
-                    const { sendEventUpdateEmail } = await import('../notification/notification.queue');
-                    
                     const changes: Record<string, { old: Date | string, new: Date | string }> = {};
                     if (originalStart !== newStart) {
                         changes.time = { old: new Date(originalStart), new: new Date(newStart) };
@@ -214,7 +210,6 @@ export class EventService {
 
         let hasPermission = event.organizer.toString() === user.userId || user.role === 'ADMIN';
         if (!hasPermission && event.community) {
-             const { Community } = await import('../community/community.model');
              const comm = await Community.findById(event.community);
              if (comm && comm.admins.map(a => a.toString()).includes(user.userId)) hasPermission = true;
         }
@@ -243,7 +238,6 @@ export class EventService {
                 throw new ForbiddenError('Only organizer can upload photos before the event ends');
             }
 
-            const { Rsvp } = await import('../rsvp/rsvp.model');
             const rsvp = await Rsvp.findOne({ event: eventId, user: userId, status: 'GOING' });
             
             if (!rsvp) {

@@ -3,15 +3,15 @@ declare module 'multer-storage-cloudinary' {
   import { v2 as cloudinary } from 'cloudinary';
 
   export interface Options {
-    cloudinary: any;
+    cloudinary: typeof cloudinary;
     folder?: string;
     allowedFormats?: string[];
     params?: {
       folder?: string;
       allowed_formats?: string[];
       transformation?: Array<Object>;
-      [key: string]: any;
-    } | ((req: any, file: any) => any);
+      [key: string]: unknown;
+    } | ((req: unknown, file: unknown) => unknown);
   }
 
   function CloudinaryStorage(options: Options): StorageEngine;

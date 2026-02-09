@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { User } from './user.model';
 import { IUser } from './user.types';
 import { ApiError } from '../../common/utils/ApiError';
+import { sendVerificationEmail, sendWelcomeEmail } from '../../modules/notification/notification.queue';
 
 
 export class AuthService {
@@ -43,7 +44,6 @@ export class AuthService {
     await user.save();
 
     try {
-        const { sendVerificationEmail } = await import('../../modules/notification/notification.queue');
         await sendVerificationEmail(user.email, user.name, verificationToken);
     } catch (error) {
         await User.deleteOne({ _id: user._id });
@@ -119,7 +119,6 @@ export class AuthService {
     await user.save();
 
     try {
-        const { sendWelcomeEmail } = await import('../../modules/notification/notification.queue');
         await sendWelcomeEmail(user.email, user.name);
     } catch (e) {
         console.error('Failed to queue welcome email', e);

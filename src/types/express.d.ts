@@ -1,4 +1,4 @@
-import { IUser } from '../modules/user/user.types';
+import { UserRole } from '../modules/user/user.types';
 
 declare global {
   namespace Express {
@@ -6,8 +6,8 @@ declare global {
       user?: {
         userId: string;
         email: string;
-        role: string;
-      } | any; // Keep any temporarily for compatibility if needed, but aim for strict
+        role: UserRole;
+      };
     }
   }
 }
@@ -16,6 +16,6 @@ export interface AuthenticatedRequest extends Express.Request {
     user: {
         userId: string;
         email: string;
-        role: string;
+        role: UserRole;
     };
 }

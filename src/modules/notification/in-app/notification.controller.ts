@@ -6,7 +6,6 @@ import { AuthRequest } from '../../../common/middlewares/auth.middleware';
 
 export class NotificationController {
     
-    // Get logged-in user's notifications
     async getMyNotifications(req: Request, res: Response) {
         const user = (req as AuthRequest).user;
         if (!user) throw new AppError('Unauthorized', 401);
@@ -17,7 +16,6 @@ export class NotificationController {
         res.status(200).json(new ApiResponse(200, { notifications, unreadCount }, 'Notifications retrieved'));
     }
 
-    // Mark specific notification as read
     async markAsRead(req: Request, res: Response) {
         const user = (req as AuthRequest).user;
         if (!user) throw new AppError('Unauthorized', 401);
@@ -29,7 +27,6 @@ export class NotificationController {
         res.status(200).json(new ApiResponse(200, updated, 'Marked as read'));
     }
 
-    // Mark all as read
     async markAllAsRead(req: Request, res: Response) {
         const user = (req as AuthRequest).user;
         if (!user) throw new AppError('Unauthorized', 401);

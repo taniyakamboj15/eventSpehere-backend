@@ -27,5 +27,7 @@ eventSchema.index({ location: '2dsphere' });
 eventSchema.index({ startDateTime: 1 });
 eventSchema.index({ organizer: 1 });
 eventSchema.index({ community: 1 });
+eventSchema.index({ recurringRule: 1 });
+eventSchema.index({ organizer: 1, title: 1, startDateTime: 1 });
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema);

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { communityService } from './community.service';
 import { eventService } from '../event/event.service';
-import { validationResult } from 'express-validator';
+
 import { ApiError } from '../../common/utils/ApiError';
 import { ApiResponse } from '../../common/utils/ApiResponse';
 import { asyncHandler } from '../../common/utils/asyncHandler';
@@ -9,11 +9,6 @@ import { AuthenticatedRequest } from '../../common/middlewares/auth.middleware';
 import { ICommunity } from './community.types';
 
 export const createCommunity = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        throw new ApiError(400, errors.array()[0].msg);
-    }
-
     const { name, type, description, latitude, longitude } = req.body;
     const userId = (req as AuthenticatedRequest).user.userId;
 
@@ -39,6 +34,12 @@ export const leaveCommunity = asyncHandler(async (req: Request, res: Response) =
     const userId = (req as AuthenticatedRequest).user.userId;
     const community = await communityService.leave(id, userId);
     res.status(200).json(new ApiResponse(200, community, 'Left community successfully'));
+});
+
+export const getCommunityById = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const community = await communityService.getById(id);
+    res.status(200).json(new ApiResponse(200, community, 'Community retrieved successfully'));
 });
 
 export const getCommunities = asyncHandler(async (req: Request, res: Response) => {

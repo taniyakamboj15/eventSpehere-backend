@@ -1,0 +1,23 @@
+<h2 style="color: #1F2937; margin-top: 0;">You're Going! 🎟️</h2>
+<p>Hi {{name}},</p>
+<p>Your RSVP for <b>{{eventTitle}}</b> has been confirmed.</p>
+
+{{#if qrCodeData}}
+<p>Here is your Ticket QR Code:</p>
+<div style="text-align: center; margin: 20px 0;">
+    <img src="{{qrCodeData}}" alt="Ticket QR Code" style="width: 200px; height: 200px; border: 4px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+</div>
+{{/if}}
+
+{{#if ticketCode}}
+<p>Ticket Code:</p>
+<div class="code-block">
+    <div class="otp" style="font-size: 24px; letter-spacing: 2px;">{{ticketCode}}</div>
+</div>
+{{/if}}
+
+<p style="text-align: center; color: #666;">Please present this QR code at the entrance.</p>
+
+<div style="text-align: center;">
+    <a href="{{clientUrl}}/events" class="btn">View Ticket</a>
+</div>
