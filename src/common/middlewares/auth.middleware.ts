@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { UnauthorizedError, ForbiddenError } from '../errors/app-error';
 import { UserRole } from '../../modules/user/user.types';
 import { AuthenticatedRequest } from '../../types/express';
+import { env } from '../../config/env';
 
 // Re-export for backward compatibility or direct usage
 export { AuthenticatedRequest };
@@ -18,7 +19,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     const token = authHeader.split(' ')[1];
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string; role: UserRole };
+        const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string; email: string; role: UserRole };
         (req as AuthenticatedRequest).user = decoded;
         next();
     } catch (error) {
@@ -35,7 +36,7 @@ export const optionalAuthenticate = (req: Request, res: Response, next: NextFunc
     const token = authHeader.split(' ')[1];
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string; role: UserRole };
+        const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string; email: string; role: UserRole };
         (req as AuthenticatedRequest).user = decoded;
         next();
     } catch (error) {

@@ -1,19 +1,20 @@
 import nodemailer from 'nodemailer';
 import { ApiError } from '../common/utils/ApiError';
 import { templateService } from './template.service';
+import { env } from '../config/env';
 
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
 
   constructor() {
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    if (env.SMTP_USER && env.SMTP_PASS) {
         this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_SECURE === 'true',
+            host: env.SMTP_HOST,
+            port: env.SMTP_PORT,
+            secure: env.SMTP_SECURE,
             auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
+                user: env.SMTP_USER,
+                pass: env.SMTP_PASS,
             },
         });
     } else {
@@ -29,14 +30,14 @@ class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: `"${process.env.APP_NAME || 'EventSphere'}" <${process.env.SMTP_FROM || 'no-reply@eventsphere.com'}>`,
+        from: `"${env.APP_NAME}" <${env.SMTP_FROM}>`,
         to,
         subject,
         html,
       });
 
       console.log(`Email sent: ${info.messageId}`);
-      if (!process.env.SMTP_HOST || process.env.SMTP_HOST.includes('ethereal')) {
+      if (env.SMTP_HOST.includes('ethereal')) {
           console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
       }
 
@@ -81,7 +82,7 @@ class EmailService {
   }
 
   async sendInvitationEmail(to: string, name: string, inviterName: string, eventTitle: string, eventId: string): Promise<void> {
-    const link = `${process.env.CLIENT_URL || 'http://localhost:5173'}/events/${eventId}`;
+    const link = `${env.CLIENT_URL}/events/${eventId}`;
     const html = await templateService.render('invitation', { name, inviterName, eventTitle, link });
     await this.sendEmail(to, `Invitation: ${eventTitle}`, html);
   }

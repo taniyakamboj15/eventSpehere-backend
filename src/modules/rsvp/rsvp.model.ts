@@ -11,7 +11,11 @@ const rsvpSchema = new Schema<IRsvp>({
     checkedIn: { type: Boolean, default: false },
 }, { timestamps: true });
 
-rsvpSchema.index({ user: 1, event: 1 }, { unique: true });
-rsvpSchema.index({ event: 1, status: 1 });
+// Indexes for performance optimization
+rsvpSchema.index({ user: 1, event: 1 }, { unique: true }); // Prevent duplicate RSVPs
+rsvpSchema.index({ event: 1, status: 1 }); // Event attendee list by status
+rsvpSchema.index({ user: 1, status: 1 }); // User's RSVPs by status
+rsvpSchema.index({ ticketCode: 1 }, { sparse: true }); // Ticket lookup
+rsvpSchema.index({ event: 1, checkedIn: 1 }); // Check-in status
 
 export const Rsvp = mongoose.model<IRsvp>('Rsvp', rsvpSchema);

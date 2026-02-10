@@ -1,11 +1,12 @@
 import IORedis from 'ioredis';
 import { logger } from './logger';
+import { env } from './env';
 
-export const redisConnection = process.env.REDIS_URL 
-    ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+export const redisConnection = env.REDIS_URL 
+    ? new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null })
     : new IORedis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: env.REDIS_HOST,
+        port: env.REDIS_PORT,
         maxRetriesPerRequest: null,
     });
 
@@ -16,3 +17,4 @@ redisConnection.on('connect', () => {
 redisConnection.on('error', (error) => {
     logger.error('Redis connection error:', error);
 });
+

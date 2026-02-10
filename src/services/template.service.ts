@@ -2,6 +2,7 @@ import hbs from 'handlebars';
 import fs from 'fs/promises';
 import path from 'path';
 import { logger } from '../config/logger';
+import { env } from '../config/env';
 
 class TemplateService {
     private templatesDir = path.join(__dirname, '../common/templates/email-templates');
@@ -36,11 +37,15 @@ class TemplateService {
             }
 
             const body = compiledTemplate(data);
+            const commonData = {
+                appName: 'EventSphere',
+                year: new Date().getFullYear(),
+                clientUrl: env.CLIENT_URL
+            };
             return this.layout!({
                 ...data,
                 body,
-                currentYear: new Date().getFullYear(),
-                clientUrl: process.env.CLIENT_URL || 'http://localhost:5173'
+                ...commonData
             });
         } catch (error) {
             logger.error(`Failed to render email template: ${templateName}`, error);

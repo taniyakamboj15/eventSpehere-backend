@@ -23,11 +23,21 @@ const eventSchema = new Schema<IEvent>({
   photos: [String],
 }, { timestamps: true });
 
-eventSchema.index({ location: '2dsphere' });
-eventSchema.index({ startDateTime: 1 });
-eventSchema.index({ organizer: 1 });
-eventSchema.index({ community: 1 });
-eventSchema.index({ recurringRule: 1 });
-eventSchema.index({ organizer: 1, title: 1, startDateTime: 1 });
+// Indexes for performance optimization
+eventSchema.index({ location: '2dsphere' }); // Geospatial queries
+eventSchema.index({ startDateTime: 1 }); // Sort by date
+eventSchema.index({ organizer: 1 }); // Filter by organizer
+eventSchema.index({ community: 1 }); // Filter by community
+eventSchema.index({ recurringRule: 1 }); // Filter recurring events
+
+// Compound indexes for common query patterns
+eventSchema.index({ organizer: 1, startDateTime: -1 }); // Organizer's events by date
+eventSchema.index({ community: 1, startDateTime: -1 }); // Community events by date
+eventSchema.index({ category: 1, startDateTime: 1 }); // Events by category and date
+eventSchema.index({ visibility: 1, startDateTime: 1 }); // Public events by date
+eventSchema.index({ startDateTime: 1, attendeeCount: -1 }); // Popular upcoming events
+
+// Text search index for title and description
+eventSchema.index({ title: 'text', description: 'text' });
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema);

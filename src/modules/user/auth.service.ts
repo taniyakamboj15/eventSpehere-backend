@@ -3,20 +3,21 @@ import jwt from 'jsonwebtoken';
 import { User } from './user.model';
 import { IUser } from './user.types';
 import { ApiError } from '../../common/utils/ApiError';
+import { env } from '../../config/env';
 import { sendVerificationEmail, sendWelcomeEmail } from '../../modules/notification/notification.queue';
 
 
 export class AuthService {
   private generateTokens(user: IUser) {
     const accessToken = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET!,
+      { userId: user._id, email: user.email, role: user.role },
+      env.JWT_SECRET,
       { expiresIn: '15m' }
     );
 
     const refreshToken = jwt.sign(
       { userId: user._id },
-      process.env.JWT_REFRESH_SECRET!,
+      env.JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -78,7 +79,7 @@ export class AuthService {
 
   async refreshToken(token: string) {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { userId: string };
+        const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as { userId: string };
         const user = await User.findById(decoded.userId);
 
         if (!user || !user.refreshTokens.includes(token)) {

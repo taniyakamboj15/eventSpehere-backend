@@ -3,21 +3,46 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
-import { limiter } from '../common/middlewares/rate-limit.middleware';
+import { apiLimiter } from '../common/middlewares/rate-limit.middleware';
+import { env } from './env';
 
 export const configureMiddlewares = (app: Express) => {
     // Security Middlewares
-    app.use(helmet());
-    app.use(limiter);
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: ["'self'"],
+                imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'self'"],
+                frameSrc: ["'none'"],
+            },
+        },
+        hsts: {
+            maxAge: 31536000, // 1 year
+            includeSubDomains: true,
+            preload: true,
+        },
+        frameguard: { action: 'deny' },
+        noSniff: true,
+        xssFilter: true,
+    }));
+    
+    app.use(apiLimiter);
     app.use(mongoSanitize());
     
     app.use(cors({
-        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        origin: env.CORS_ORIGIN,
         credentials: true
     }));
 
-    // Body Parsing
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+    // Body Parsing with size limits
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     app.use(cookieParser());
 };
+

@@ -15,7 +15,14 @@ const communitySchema = new Schema<ICommunity>({
     admins: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
-communitySchema.index({ location: '2dsphere' });
-communitySchema.index({ name: 1 });
+// Indexes for performance optimization
+communitySchema.index({ location: '2dsphere' }); // Geospatial queries
+communitySchema.index({ name: 1 }); // Search by name
+communitySchema.index({ type: 1 }); // Filter by type
+communitySchema.index({ members: 1 }); // Member lookup
+communitySchema.index({ admins: 1 }); // Admin lookup
+
+// Text search index
+communitySchema.index({ name: 'text', description: 'text' });
 
 export const Community = mongoose.model<ICommunity>('Community', communitySchema);
